@@ -1,4 +1,3 @@
-
 ;; package manager
 (require 'package)
 (add-to-list 'package-archives '("melpa-stable" . "http://stable.melpa.org/packages/") t)
@@ -60,11 +59,28 @@
   (add-hook 'ruby-mode-hook 'rubocop-mode)
   :diminish rubocop-mode)
 
+(use-package neotree
+  :ensure t
+  :init
+  (global-set-key (kbd "<f2>") 'neotree-toggle))
+(setq projectile-switch-project-action 'neotree-projectile-action)
+
 (use-package ruby-tools
   :ensure t
   :init
   (add-hook 'ruby-mode-hook 'ruby-tools-mode)
   :diminish ruby-tools-mode)
+
+(use-package haskell-mode :ensure t)
+(use-package yasnippet :ensure t)
+(use-package haskell-snippets :ensure t)
+
+(add-hook 'haskell-mode-hook
+          (lambda ()
+            (interactive)
+            (haskell-indentation-mode)
+            (interactive-haskell-mode)
+            (yas-minor-mode)))
 
 ;; EVIL
 (use-package evil
@@ -88,12 +104,15 @@
 ;; Tabs are evil
 (setq-default indent-tabs-mode nil)
 
+(add-to-list 'load-path "/home/jclemer/kit-mode")
+(autoload 'kit-mode "kit-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.kit\\'" . kit-mode))
+
 ;; Colors
 (load-theme 'nord t)
 (setq nord-comment-brightness 20)
 
 (setq highlight-indent-guides-method 'column)
-
 
 (defgroup highlight-indentation nil
   "Highlight Indentation"
@@ -343,11 +362,24 @@ corresponding to the indentation of the current line"
 (add-hook 'before-save-hook 'untabify)
 (setq tab-stop-list '(number-sequence 2 120 2))
 
-(require 'projectile)
+(add-hook 'after-init-hook 'global-company-mode)
 
-(projectile-global-mode)
-(setq projectile-indexing-method 'native)
-(setq projectile-enable-caching t)
+(use-package projectile
+  :ensure t
+  :config
+  (setq projectile-indexing-method 'native)
+  (setq projectile-enable-caching t)
+  :init
+  (projectile-global-mode)
+  (setq projectile-indexing-method 'native)  
+  (setq projectile-enable-caching t))
+
+;; Interactive search key bindings. By default, C-s runs
+;; isearch-forward, so this swaps the bindings.
+(global-set-key (kbd "C-s") 'isearch-forward-regexp)
+(global-set-key (kbd "C-r") 'isearch-backward-regexp)
+(global-set-key (kbd "C-M-s") 'isearch-forward)
+(global-set-key (kbd "C-M-r") 'isearch-backward)
 
 (menu-bar-mode 0)
 (tool-bar-mode 0)
@@ -425,13 +457,34 @@ corresponding to the indentation of the current line"
   (interactive "p")
   (zoom-frame (- n) frame amt))
 
-
 (global-set-key (kbd "C-c z i") 'zoom-frame)
 
 (global-set-key (kbd "C-c z o") 'zoom-frame-out)
 
-;(setq x-meta-keysym 'super)
-;(setq x-super-keysym 'meta)
+(defun indent-buffer ()
+  "Indent current buffer according to major mode."
+  (interactive)
+  (indent-region (point-min) (point-max)))
+
+(use-package racer-mode
+  :ensure t
+  :init
+  (add-hook 'racer-mode-hook #'eldoc-mode)
+  (add-hook 'racer-mode-hook #'company-mode))
+
+(use-package flycheck-rust
+  :ensure t
+  :init
+  (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+
+(use-package rust-mode
+  :ensure t
+  :init
+  (setq racer-cmd "~/.cargo/bin/racer") ;; Rustup binaries PATH
+  (setq racer-rust-src-path "/home/jclemer/rust/src") ;; Rust source code PATH
+  (add-hook 'rust-mode-hook 'cargo-minor-mode)
+  (add-hook 'rust-mode-hook (lambda () (local-set-key (kbd "C-c <tab>") #'rust-format-buffer)))
+  (add-hook 'rust-mode-hook #'racer-mode))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -443,7 +496,7 @@ corresponding to the indentation of the current line"
     ("0f302165235625ca5a827ac2f963c102a635f27879637d9021c04d845a32c568" "8aebf25556399b58091e533e455dd50a6a9cba958cc4ebb0aab175863c25b9a4" "6a674ffa24341f2f129793923d0b5f26d59a8891edd7d9330a258b58e767778a" "4c8372c68b3eab14516b6ab8233de2f9e0ecac01aaa859e547f902d27310c0c3" "880f541eabc8c272d88e6a1d8917fe743552f17cedd8f138fe85987ee036ad08" "4aee8551b53a43a883cb0b7f3255d6859d766b6c5e14bcb01bed572fcbef4328" "4cf3221feff536e2b3385209e9b9dc4c2e0818a69a1cdb4b522756bcdf4e00a4" "7527f3308a83721f9b6d50a36698baaedc79ded9f6d5bd4e9a28a22ab13b3cb1" default)))
  '(package-selected-packages
    (quote
-    (enh-ruby-mode markdown-preview-mode markdown-mode ensime scala-mode elixir-mode kotlin-mode melpa-upstream-visit rust-playground rust-mode ponylang-mode js-auto-format-mode electric-spacing electric-operator electric-case yaml-mode projectile-rails projectile ggtags color-theme-x color-theme-approximate color-theme-modern color-theme color-theme-sanityinc-solarized color-theme-sanityinc-tomorrow solarized-theme magit nord yari use-package smartparens rvm ruby-tools rubocop nord-theme inf-ruby evil))))
+    (racer racer-mode flycheck-rust company-mode cargo neotree racket-mode flymake-rust haskell-snippets yasnippet enh-ruby-mode markdown-preview-mode markdown-mode ensime scala-mode elixir-mode kotlin-mode melpa-upstream-visit rust-playground rust-mode ponylang-mode js-auto-format-mode electric-spacing electric-operator electric-case yaml-mode projectile-rails projectile ggtags color-theme-x color-theme-approximate color-theme-modern color-theme color-theme-sanityinc-solarized color-theme-sanityinc-tomorrow solarized-theme magit nord yari use-package smartparens rvm ruby-tools rubocop nord-theme inf-ruby evil))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
